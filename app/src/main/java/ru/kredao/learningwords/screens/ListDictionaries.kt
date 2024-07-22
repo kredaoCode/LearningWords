@@ -1,6 +1,7 @@
 package ru.kredao.learningwords.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +17,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.snapshots.SnapshotMutableState
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -23,15 +28,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.navigation.NavController
 import ru.kredao.learningwords.R
 
-@Preview(showBackground = true)
+
 @Composable
-fun ListDictionaries() {
+fun ListDictionaries(navController: NavController, dictionaries: SnapshotStateList<SnapshotStateMap<String, Any>>, editIndex: MutableState<Int?>) {
     val myFontFamily = FontFamily(
         Font(R.font.montserrat, FontWeight.Normal),
         Font(R.font.montserrat_semibold, FontWeight.SemiBold)
@@ -64,8 +69,8 @@ fun ListDictionaries() {
                 }
         ) {
             itemsIndexed(
-                listOf("English words", "Japan Words", "Italian Words")
-            ) { _, item ->
+                dictionaries
+            ) { index, item ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -83,7 +88,7 @@ fun ListDictionaries() {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = item,
+                            text = item["name"].toString(),
                             color = MaterialTheme.colorScheme.primary,
                             fontSize = 20.sp,
                             fontFamily = myFontFamily,
@@ -93,7 +98,12 @@ fun ListDictionaries() {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
-                                modifier = Modifier.padding(end = 10.dp)
+                                modifier = Modifier
+                                    .clickable {
+                                        editIndex.value = index
+                                        navController.navigate("EditDictionaries")
+                                    }
+                                    .padding(end = 10.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_edit),
@@ -121,7 +131,10 @@ fun ListDictionaries() {
                 },
             contentAlignment = Alignment.Center
         ) {
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = {
+                editIndex.value = null
+                navController.navigate("EditDictionaries")
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_add),
                     contentDescription = "add",

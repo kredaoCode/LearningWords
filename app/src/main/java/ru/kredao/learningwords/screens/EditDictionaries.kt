@@ -24,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -32,16 +34,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.navigation.NavController
 import ru.kredao.learningwords.R
 
-@Preview(showBackground = true)
 @Composable
-fun EditDictionaries() {
+fun EditDictionaries(
+    navController: NavController,
+    dictionaries: SnapshotStateList<SnapshotStateMap<String, Any>>,
+    editIndex: MutableState<Int?>
+) {
     val myFontFamily = FontFamily(
         Font(R.font.montserrat, FontWeight.Normal),
         Font(R.font.montserrat_semibold, FontWeight.SemiBold)
@@ -52,14 +57,16 @@ fun EditDictionaries() {
     var onCreateItem by remember {
         mutableStateOf(false)
     }
-    val items = remember {
+    var items = remember {
         mutableStateListOf(
-            mutableStateListOf("Box", "Коробка"),
-            mutableStateListOf("Box", "Коробка"),
-            mutableStateListOf("Box", "Коробка"),
-            mutableStateListOf("Box", "Коробка")
+            mutableStateListOf("Word", "Translate"),
         )
     }
+    if (editIndex.value != null) {
+        nameDict = dictionaries[editIndex.value!!]["name"].toString()
+        items = dictionaries[editIndex.value!!]["dictionary"] as SnapshotStateList<SnapshotStateList<String>>
+    }
+
 
 
     fun deleteItem(index: Int) {
@@ -95,7 +102,26 @@ fun EditDictionaries() {
                 fontFamily = myFontFamily,
                 fontWeight = FontWeight.SemiBold,
             )
-            IconButton(onClick = { /*ПУСТОТА*/ }) {
+            IconButton(onClick = {
+                if (nameDict != "" && items.size > 0 && editIndex.value != null) {
+                    dictionaries[editIndex.value!!] = mutableStateMapOf(
+                            "name" to nameDict,
+                            "dictionary" to items
+                        )
+                    editIndex.value = null
+                    navController.navigate("ListDictionaries")
+                } else if (nameDict != "" && items.size > 0 && editIndex.value == null) {
+                    dictionaries.add(
+                        0, mutableStateMapOf(
+                            "name" to nameDict,
+                            "dictionary" to items
+                        )
+                    )
+                    editIndex.value = null
+                    navController.navigate("ListDictionaries")
+                }
+
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_check),
                     contentDescription = "add",
@@ -241,9 +267,7 @@ fun EditDictionaries() {
                     height = Dimension.fillToConstraints
                 }
         ) {
-            itemsIndexed(
-                items
-            ) { index, item ->
+            itemsIndexed(items) { index, item ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -297,10 +321,22 @@ fun EditDictionaries() {
                     }
                 }
             }
-
         }
         IconButton(
-            onClick = { /*ПУСТОТА*/ },
+            onClick = {
+                if (editIndex.value != null) {
+                    dictionaries.removeAt(editIndex.value!!)
+                    editIndex.value = null
+                    navController.navigate("ListDictionaries")
+                } else {
+                    nameDict = ""
+                    items = mutableStateListOf(
+                        mutableStateListOf("Word", "Translate"),
+                    )
+                    navController.navigate("ListDictionaries")
+                }
+
+            },
             modifier = Modifier
                 .constrainAs(remove) {
                     end.linkTo(parent.end)
@@ -310,10 +346,11 @@ fun EditDictionaries() {
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_remove),
-                contentDescription = "add",
+                contentDescription = "remove",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
             )
         }
     }
 }
+
